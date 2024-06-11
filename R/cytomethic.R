@@ -81,7 +81,6 @@ clean_features <- function(
 #' @import sesameData
 #' @import ExperimentHub
 #' @import BiocParallel
-#' @importFrom tibble tibble
 #' @importFrom sesame mLiftOver
 #' @importFrom methods is
 #' @export
@@ -99,10 +98,12 @@ cmi_predict <- function(betas, cmi_model,
     }
 
     if (is.matrix(betas)) {
-        return(do.call(rbind, bplapply(seq_len(ncol(betas)), function(i) {
+        res <- bplapply(seq_len(ncol(betas)), function(i) {
             cmi_predict(betas[,i], cmi_model, source_platform = source_platform,
                 lift_over = lift_over, verbose = verbose)
-        }, BPPARAM = BPPARAM)))
+        }, BPPARAM = BPPARAM)
+        names(res) <- colnames(betas)
+        return(res)
     }
     stopifnot(is.numeric(betas))
 
@@ -116,7 +117,7 @@ cmi_predict <- function(betas, cmi_model,
         requireNamespace("randomForest")
         res <- sort(predict(cmi_model$model,
             newdata = t(betas), type = "prob")[1,], decreasing = TRUE)
-        tibble(response = names(res)[1], prob = res[1])
+        list(response = names(res)[1], prob = res[1])
     } else if (is(cmi_model$model, "svm")) {
         betas <- t(as.data.frame(betas))
         if (!requireNamespace("e1071", quietly = TRUE)) stop("e1071 not installed")
@@ -125,7 +126,7 @@ cmi_predict <- function(betas, cmi_model,
         res <- as.character(predict(model, newdata = betas))
         probs <- attr(predict(model, newdata = betas, probability = TRUE), "probabilities")
         prob_max <- apply(probs, MARGIN = 1, FUN = max)[1]
-        tibble(response = as.character(res), prob = prob_max)
+        list(response = as.character(res), prob = prob_max)
     } else if (is(cmi_model$model, "xgb")) {
         betas <- t(as.data.frame(betas))
         if (!requireNamespace("xgboost", quietly = TRUE)) stop("xgboost not installed")
@@ -139,7 +140,7 @@ cmi_predict <- function(betas, cmi_model,
         pred_prob_matrix <- matrix(pred_probabilities, nrow = 1, ncol = num_classes, byrow = TRUE)
         max_probability <- apply(pred_prob_matrix, 1, max)
         pred_label <- cmi_model$label_levels[apply(pred_prob_matrix, 1, which.max)]
-        tibble(response = pred_label, prob = max_probability)
+        list(response = pred_label, prob = max_probability)
     } else if (is(cmi_model$model, "keras")) {
         if (is.null(cmi_model$features)) stop("Must provide feature parameter with Keras model")
         if (is.null(cmi_model$label_levels)) stop("Must provide label_levels parameter with Keras model")
@@ -150,9 +151,9 @@ cmi_predict <- function(betas, cmi_model,
         max_probability <- apply(pred_prob_matrix, 1, max)
         highest_prob_prediction <- apply(pred_prob_matrix, 1, function(x) which.max(x))
         pred_label <- cmi_model$label_levels[highest_prob_prediction]
-        tibble(response = pred_label, prob = max_probability)
+        list(response = pred_label, prob = max_probability)
     } else {
-        stop("Package not supported")
+        stop("Model not supported by package.")
     }
 }
 
