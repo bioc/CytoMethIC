@@ -12,8 +12,7 @@ Authors@R: c(person("Wanding", "Zhou", role = c("aut"),
               comment = c(ORCID = "0009-0002-0490-3269")))
 License: Artistic-2.0
 Depends: R (>= 4.4.0), ExperimentHub
-Imports: tibble,
-         utils,
+Imports: utils,
          stats,
          tools,
          sesame,
@@ -22,7 +21,8 @@ Imports: tibble,
          BiocParallel,
          BiocManager
 VignetteBuilder: knitr
-Suggests: BiocStyle,
+Suggests: tibble,
+          BiocStyle,
           randomForest,
           testthat,
           knitr,

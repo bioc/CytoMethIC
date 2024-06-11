@@ -7,24 +7,12 @@ to predict it.  This function supports randomForest, e1071::svm, xgboost,
 and keras/tensorflow models. For xgboost and keras models, the features used
 in classification as well as a label mapping must be provided for output.}
 \usage{
-cmi_predict(
-  betas,
-  cmi_model,
-  source_platform = NULL,
-  lift_over = FALSE,
-  verbose = FALSE,
-  BPPARAM = SerialParam()
-)
+cmi_predict(betas, cmi_model, verbose = FALSE, BPPARAM = SerialParam())
 }
 \arguments{
 \item{betas}{DNA methylation beta}
 
 \item{cmi_model}{Cytomethic model downloaded from ExperimentHub}
-
-\item{source_platform}{source platform
-If not given, will infer from probe ID.}
-
-\item{lift_over}{whether to allow mLiftOver to convert probe IDs}
 
 \item{verbose}{be verbose with warning}
 
@@ -47,8 +35,15 @@ library(CytoMethIC)
 
 ## Cancer Type
 model = ExperimentHub()[["EH8395"]]
-cmi_predict(openSesame(sesameDataGet("EPICv2.8.SigDF")[[1]]), model, lift_over=TRUE)
-cmi_predict(openSesame(sesameDataGet('EPIC.1.SigDF')), model, lift_over=TRUE)
-cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, model, lift_over=TRUE)
+betas = openSesame(sesameDataGet("EPICv2.8.SigDF")[[1]])
+betas = imputeBetas(mLiftOver(betas, "HM450"))
+cmi_predict(betas, model)
+
+betas = openSesame(sesameDataGet('EPIC.1.SigDF'), mask=FALSE)
+cmi_predict(betas, model)
+
+betas = sesameDataGet("HM450.1.TCGA.PAAD")$betas
+betas = imputeBetas(betas)
+cmi_predict(betas, model)
 
 }

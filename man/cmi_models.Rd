@@ -4,6 +4,9 @@
 \name{cmi_models}
 \alias{cmi_models}
 \title{Master data frame for all model objects}
+\format{
+tibble
+}
 \value{
 master sheet of CytoMethIC model objects
 }

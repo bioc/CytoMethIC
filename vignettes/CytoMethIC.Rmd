@@ -7,7 +7,7 @@ output: BiocStyle::html_document
 fig_width: 6
 fig_height: 5
 vignette: >
-    %\VignetteEngine{knitr::knitr}
+    %\VignetteEngine{knitr::rmarkdown}
     %\VignetteIndexEntry{CytoMethIC User Guide}
     %\VignetteEncoding{UTF-8}
     
@@ -65,10 +65,10 @@ random forest and support vector models from CytoMethIC models on
 ExperimentHub.
 
 ```{r cyto4, message=FALSE}
-cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8395"]],
-    lift_over=TRUE)
-cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8396"]],
-    lift_over=TRUE)
+## for missing data
+betas = imputeBetas(sesameDataGet("HM450.1.TCGA.PAAD")$betas)
+cmi_predict(betas, ExperimentHub()[["EH8395"]])
+cmi_predict(betas, ExperimentHub()[["EH8396"]])
 ```
 
 # Pan-Cancer subtype classification
@@ -104,10 +104,11 @@ from GitHub URLs. Note that https://github.com/zhou-lab/CytoMethIC_models will
 be the most frequently updated public repository of our lab's classifiers.
 
 ```{r cyto8}
-base_url <- "https://github.com/zhou-lab/CytoMethIC_models/raw/main/models"
-cmi_model <- readRDS(url(sprintf("%s/Race3_rfcTCGA_InfHum3.rds", base_url)))
-betas <- openSesame(sesameDataGet("EPICv2.8.SigDF")[[1]])
-cmi_predict(betas, cmi_model, lift_over=TRUE)
+base_url = "https://github.com/zhou-lab/CytoMethIC_models/raw/main/models"
+cmi_model = readRDS(url(sprintf("%s/Race3_rfcTCGA_InfHum3.rds", base_url)))
+betas = openSesame(sesameDataGet("EPICv2.8.SigDF")[[1]], mask=FALSE)
+betas = mLiftOver(betas, "HM450")
+cmi_predict(betas, cmi_model)
 ```
 
 ```{r}

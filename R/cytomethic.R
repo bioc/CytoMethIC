@@ -4,15 +4,15 @@
 #'
 #' @name cmi_models
 #' @docType data
+#' @format tibble
 #' @return master sheet of CytoMethIC model objects
 #' @examples print(cmi_models[,c("EHID","Title")])
 #' @export
 NULL
 
+## internal function for checking features
 clean_features <- function(
-    betas, cmi_model,
-    source_platform = source_platform,
-    lift_over = lift_over, verbose = verbose) {
+    betas, cmi_model, verbose = FALSE) {
     
     features <- cmi_model$features
     idx <- match(features, names(betas))
@@ -25,28 +25,21 @@ clean_features <- function(
             sum(is.na(betas[idx])), length(idx)))
     }
 
-    if (lift_over) {
-        source_platform <- sesameData::sesameData_check_platform(
-            source_platform, rownames(betas))
-        target_platform <- cmi_model$feature_platform
-        if (is.null(target_platform)) {
-            target_platform <- "HM450"
-        }
-        betas <- mLiftOver(betas, source_platform = source_platform,
-            target_platform = target_platform, impute=TRUE)
-    }
-
     ## if still have missing values
     idx <- match(features, names(betas))
-    if (sum(!is.na(idx)) == 0 && !lift_over) {
-        stop("No overlapping probes. Consider lift_over=TRUE")
+    if (sum(!is.na(idx)) == 0) {
+        stop(sprintf("No overlapping probes.\n%s\n%s\n",
+            "If on different platform, use mLiftOver.",
+            "If missing value, use imputeBetas"))
     }
     if (sum(!is.na(betas[idx])) == 0 ||  # all-NA
         (sum(is.na(betas[idx])) > 0 && ( # some NA and model requires all
             is.null(cmi_model$features_require_all) ||
             cmi_model$features_require_all))) {
-        stop(sprintf("Missing %d/%d features. Consider lift_over=TRUE",
-            sum(is.na(betas[idx])), sum(!is.na(idx))))
+        stop(sprintf("Missing %d/%d features.\n%s\n%s\n",
+            sum(is.na(betas[idx])), sum(!is.na(idx)),
+            "If on different platform, use mLiftOver.",
+            "If missing value, use imputeBetas."))
     }
     betas <- betas[features]
 }
@@ -58,9 +51,6 @@ clean_features <- function(
 #' 
 #' @param betas DNA methylation beta
 #' @param cmi_model Cytomethic model downloaded from ExperimentHub
-#' @param source_platform source platform
-#' If not given, will infer from probe ID.
-#' @param lift_over whether to allow mLiftOver to convert probe IDs
 #' @param BPPARAM use MulticoreParam(n) for parallel processing
 #' @param verbose be verbose with warning
 #' @return predicted cancer type label
@@ -72,21 +62,27 @@ clean_features <- function(
 #'
 #' ## Cancer Type
 #' model = ExperimentHub()[["EH8395"]]
-#' cmi_predict(openSesame(sesameDataGet("EPICv2.8.SigDF")[[1]]), model, lift_over=TRUE)
-#' cmi_predict(openSesame(sesameDataGet('EPIC.1.SigDF')), model, lift_over=TRUE)
-#' cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, model, lift_over=TRUE)
+#' betas = openSesame(sesameDataGet("EPICv2.8.SigDF")[[1]])
+#' betas = imputeBetas(mLiftOver(betas, "HM450"))
+#' cmi_predict(betas, model)
+#' 
+#' betas = openSesame(sesameDataGet('EPIC.1.SigDF'), mask=FALSE)
+#' cmi_predict(betas, model)
 #'
+#' betas = sesameDataGet("HM450.1.TCGA.PAAD")$betas
+#' betas = imputeBetas(betas)
+#' cmi_predict(betas, model)
+#' 
 #' @import stats
 #' @import tools
 #' @import sesameData
+#' @import sesame
 #' @import ExperimentHub
 #' @import BiocParallel
-#' @importFrom sesame mLiftOver
 #' @importFrom methods is
 #' @export
 cmi_predict <- function(betas, cmi_model,
-    source_platform = NULL, lift_over = FALSE, verbose = FALSE,
-    BPPARAM = SerialParam()) {
+    verbose = FALSE, BPPARAM = SerialParam()) {
     
     if(names(cmi_model)[[1]] == "model_serialized") {
         requireNamespace("keras")
@@ -99,17 +95,14 @@ cmi_predict <- function(betas, cmi_model,
 
     if (is.matrix(betas)) {
         res <- bplapply(seq_len(ncol(betas)), function(i) {
-            cmi_predict(betas[,i], cmi_model, source_platform = source_platform,
-                lift_over = lift_over, verbose = verbose)
+            cmi_predict(betas[,i], cmi_model, verbose = verbose)
         }, BPPARAM = BPPARAM)
         names(res) <- colnames(betas)
         return(res)
     }
-    stopifnot(is.numeric(betas))
 
-    betas <- clean_features(betas, cmi_model,
-        source_platform = source_platform,
-        lift_over = lift_over, verbose = verbose)
+    stopifnot(is.numeric(betas))
+    betas <- clean_features(betas, cmi_model, verbose = verbose)
 
     if (is(cmi_model$model, "function")) {
         cmi_model$model(betas, cmi_model$model_data)
