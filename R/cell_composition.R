@@ -25,14 +25,15 @@ double.update.f <- function(f, nu1, nu2, step.size) {
 #' @param delta delta score to reset counter
 #' @param step.max maximum step, do not adjust
 #' @param verbose output debug info
-optimizeFrac <- function(frac, ref, q, errFunc,
+#' @return a list of fractions and min err
+.optimizeFrac <- function(frac, ref, q, errFunc,
     temp=0.5, maxIter=1000, delta=0.0001, step.max=1.0, verbose=FALSE) {
 
     errcurrent <- errFunc(frac, ref, q);
     errmin <- errcurrent
     frac.min <- frac; niter <- 1
     repeat {
-        nu <- sample(len(frac), 2) # pick two cell types, including unknown
+        nu <- sample(length(frac), 2) # pick two cell types, including unknown
         step.size <- runif(1) * step.max
         frac.test <- double.update.f(frac, nu[1], nu[2], step.size);
         if (!is.null(frac.test)) {
@@ -61,7 +62,52 @@ optimizeFrac <- function(frac, ref, q, errFunc,
                 frac <- frac.test
             }}}
 
-    list(frac.min=frac.min, errmin=errmin)
+    list(frac=frac.min, err=errmin)
+}
+
+#' Reference-based cell type deconvolution
+#'
+#' This is a reference-based cell composition estimation. The function takes a
+#' reference methylation status matrix (rows for probes and columns for cell
+#' types) and a query beta value measurement.
+#'
+#' The length of the target beta values should be the same as
+#' the number of rows of the reference Matrix. The function outputs a list
+#' containing the estimated cell fraction, the error of optimization.
+#' 
+#' @param ref reference methylation
+#' @param q target measurement: length(q) == nrow(ref)
+#' @param trim to trim query input beta values.
+#' this relieves unclean background subtraction
+#' @param ... extra parameters for optimization.
+#' @return a list of fraction, min error.
+#' @examples
+#'
+#' ref = cbind(
+#'   CD4 = c(1,1,1,0,1,0),
+#'   CD19 = c(0,0,1,1,0,1),
+#'   CD14 = c(1,1,1,1,0,1))
+#' rownames(ref) = paste0("cg",1:6)
+#' trueFrac = runif(3)
+#' trueFrac = trueFrac / sum(trueFrac)
+#' q = ref %*% trueFrac
+#' trueFrac
+#' cmi_deconvolution(ref, q)
+#' 
+#' @export
+cmi_deconvolution <- function(
+    ref, q, trim=FALSE, ...) {
+
+    if (trim) { q <- trim(q); }
+    errFunc <- function(f, ref, q) {
+        sum(abs(q - ref %*% f), na.rm=TRUE)
+    }
+
+    frac <- rep(1/ncol(ref), ncol(ref))
+    res <- .optimizeFrac(frac, ref, q, errFunc, step.max = 0.5, ...)
+    res <- .optimizeFrac(res$frac, ref, q, errFunc, step.max = 0.05, ...)
+
+    list(frac = setNames(res$frac, colnames(ref)), err = res$err)
 }
 
 #' Reference-based cell type deconvolution (allowing one unknown component)
@@ -81,7 +127,23 @@ optimizeFrac <- function(frac, ref, q, errFunc,
 #' this relieves unclean background subtraction
 #' @param ... extra parameters to .optimizeFrac
 #' @return a list of fraction, min error and unknown component methylation state
-estimateCellCompositionWithUnk <- function(
+#' @examples
+#'
+#' ref = cbind(
+#'   CD4 = c(1,1,1,0,1,0),
+#'   CD19 = c(0,0,1,1,0,1),
+#'   CD14 = c(1,1,1,1,0,1))
+#' rownames(ref) = paste0("cg",1:6)
+#' trueFrac = runif(4)
+#' trueFrac = trueFrac / sum(trueFrac)
+#' ref_unk = sample(c(0,1), nrow(ref), replace=TRUE)
+#' q = cbind(ref_unk, ref) %*% trueFrac
+#' trueFrac
+#' res = cmi_deconvolution2(ref, q)
+#' res$frac
+#' 
+#' @export
+cmi_deconvolution2 <- function(
     ref, q, trim=FALSE, ...) {
 
     if (trim) { q <- trim(q); }
@@ -90,58 +152,15 @@ estimateCellCompositionWithUnk <- function(
         sum(ifelse(gamma < f[1] / 2, abs(gamma), abs(gamma - f[1])), na.rm=TRUE)
     }
 
-    if (is.null(frac0)) { frac <- c(1, rep(0, ncol(ref)))
-    } else { frac <- frac0 } # use given fraction estimate
+    frac <- c(1, rep(0, ncol(ref)))
     res <- .optimizeFrac(frac, ref, q, errFunc, step.max=0.5, ...)
-    res <- .optimizeFrac(res$frac.min, ref, q, errFunc, step.max=0.05, ...)
+    res <- .optimizeFrac(res$frac, ref, q, errFunc, step.max=0.05, ...)
     
-    frac <- res$frac.min
+    frac <- res$frac
     gamma <- q - ref %*% frac[2:length(frac)]
     g0 <- ifelse(gamma < frac[1] / 2, 0, 1)
     
     list(
         frac = setNames(frac, c("unknown", colnames(ref))),
-        err = res$errmin, g0 = g0)
+        err = res$err, g0 = g0)
 }
-
-#' Reference-based cell type deconvolution
-#'
-#' This is a reference-based cell composition estimation. The function takes a
-#' reference methylation status matrix (rows for probes and columns for cell
-#' types) and a query beta value measurement.
-#'
-#' The length of the target beta values should be the same as
-#' the number of rows of the reference Matrix. The function outputs a list
-#' containing the estimated cell fraction, the error of optimization.
-#' 
-#' @param ref reference methylation
-#' @param q target measurement: length(q) == nrow(ref)
-#' @param trim to trim query input beta values.
-#' this relieves unclean background subtraction
-#' @param ... extra parameters for optimization.
-#' @return a list of fraction, min error.
-estimateCellComposition <- function(
-    ref, q, trim=FALSE, ...) {
-
-    if (trim) { q <- trim(q); }
-    errFunc <- function(f, ref, q) {
-        sum(abs(q - ref %*% f), na.rm=TRUE)
-    }
-
-    frac <- frac0
-    if (is.null(frac)) { frac <- rep(1/ncol(ref), ncol(ref)); }
-    res <- .optimizeFrac(frac, ref, q, errFunc, step.max = 0.5, ...)
-    res <- .optimizeFrac(res$frac.min, ref, q, errFunc, step.max = 0.05, ...)
-
-    list(frac = setNames(res$frac.min, colnames(ref)), err = res$errmin)
-}
-
-## g <- diffRefSet(getRefSet(platform='HM450'))
-## M <- ncol(g)
-## trueFrac <- runif(M+1)
-## trueFrac <- trueFrac / sum(trueFrac)
-## g0 <- sample(c(0,1), nrow(g), replace=TRUE)
-## q <- cbind(g0, g) %*% trueFrac + rnorm(length(g0), mean=0, sd = 0.0)
-## q[q<0] <- 0
-## q[q>1] <- 1
-## est <- estimateCellComposition(g, q)
