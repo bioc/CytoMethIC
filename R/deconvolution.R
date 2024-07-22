@@ -107,7 +107,7 @@ cmi_deconvolution <- function(
     res <- .optimizeFrac(frac, ref, q, errFunc, step.max = 0.5, ...)
     res <- .optimizeFrac(res$frac, ref, q, errFunc, step.max = 0.05, ...)
 
-    list(frac = setNames(res$frac, colnames(ref)), err = res$err)
+    list(frac = setNames(res$frac, colnames(ref)), err = res$err/nrow(ref))
 }
 
 #' Reference-based cell type deconvolution (allowing one unknown component)
@@ -162,5 +162,5 @@ cmi_deconvolution2 <- function(
     
     list(
         frac = setNames(frac, c("unknown", colnames(ref))),
-        err = res$err, g0 = g0)
+        err = res$err/nrow(ref), g0 = g0)
 }
