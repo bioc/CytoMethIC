@@ -1,6 +1,6 @@
 ---
-title: "CytoMethIC Quick Start"
-shorttitle: "CytoMethIC Quick Start"
+title: "1. Basic Information"
+shorttitle: "1. Basic Information"
 date: "`r BiocStyle::doc_date()`"
 package: CytoMethIC
 output: BiocStyle::html_document
@@ -8,24 +8,10 @@ fig_width: 6
 fig_height: 5
 vignette: >
     %\VignetteEngine{knitr::rmarkdown}
-    %\VignetteIndexEntry{CytoMethIC User Guide}
+    %\VignetteIndexEntry{1. Basic Information}
     %\VignetteEncoding{UTF-8}
     
 ---
-# Installation
-
-To use CytoMethIC, you need to install the package from Bioconductor. If you
-don't have the BiocManager package installed, install it first:
-
-```{r, message=FALSE, warning=FALSE, cache=TRUE, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE)) {
-  install.packages("BiocManager")
-}
-if (!requireNamespace("CytoMethIC", quietly = TRUE)) {
-  BiocManager::install("CytoMethIC")
-}
-```
-# Introduction
 
 `CytoMethIC` is a comprehensive package that provides model data and functions
 for easily using machine learning models that use data from the DNA methylome
@@ -39,76 +25,76 @@ epigenetic cancer classification and predicting phenotypes. This includes CNS tu
 classification, Pan-cancer classification, race prediction, cell of origin
 classification, and subtype classification models.
 
-```{r, cyto2, message=FALSE, warning=FALSE}
-library(CytoMethIC)
-library(ExperimentHub)
-library(sesame)
-sesameDataCache()
-```
+# MODELS
 
-# Data from ExperimentHub
+Models available are listed below:
 
-For these examples, we'll be using models from ExperimentHub and a sample from
-sesameData.
-
-```{r cyto3, result="asis", echo=FALSE}
+```{r cyto-model, result="asis", echo=FALSE, message=FALSE}
 library(knitr)
-kable(cmi_models[, c("ModelID", "PredictionLabelDescription")],
-  caption = "CytoMethIC supported models"
+library(CytoMethIC)
+kable(cmi_models[
+    cmi_models$PredictionGroup == "1. Basic",
+    c("EHID", "ModelID", "PredictionLabel")],
+    caption = "CytoMethIC Basic Models"
 )
 ```
 
-# Pan-Cancer type classification
+One can access the model using the EHID above in
+`ExperimentHub()[["EHID"]]`.
 
-The below snippet shows a demonstration of the model abstraction working on
-random forest and support vector models from CytoMethIC models on
-ExperimentHub.
+More models (if EHID is NA) are available in the following [Github
+Repo](https://github.com/zhou-lab/CytoMethIC_models/tree/main/models).  You can
+directly download them and load with `readRDS()`. Some examples using either
+approach are below.
 
-```{r cyto4, message=FALSE}
-## for missing data
-betas = imputeBetas(sesameDataGet("HM450.1.TCGA.PAAD")$betas)
-cmi_predict(betas, ExperimentHub()[["EH8395"]])
-cmi_predict(betas, ExperimentHub()[["EH8396"]])
+# EXAMPLE INPUT
+
+```{r, cyto0, message=FALSE}
+library(sesame)
+library(CytoMethIC)
+betasHM450 = imputeBetas(sesameDataGet("HM450.1.TCGA.PAAD")$betas)
 ```
 
-# Pan-Cancer subtype classification
+To make models work for incompatible platforms, you could try the
+[mLiftOver](https://academic.oup.com/bioinformatics/article/40/7/btae423/7705981). Here
+is an example:
 
-The below snippet shows a demonstration of the cmi_predict function working to
-predict the subtype of the cancer.
-
-```{r cyto5, message=FALSE}
-cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8422"]])
+```{r, cyto2, message=FALSE, eval=FALSE}
+betasEPIC = openSesame(sesameDataGet("EPICv2.8.SigDF")[[1]], mask=FALSE)
+betasHM450 = imputeBetas(mLiftOver(betasEPIC, "HM450"))
 ```
 
-# Ethnicity classification
+# SEX
+
+```{r}
+model = readRDS(url("https://github.com/zhou-lab/CytoMethIC_models/raw/refs/heads/main/models/Sex2_HM450_20240114.rds"))
+cmi_predict(betasHM450, model)
+```
+
+# AGE
+
+```{r, cyto1, message=FALSE, warning=FALSE}
+model = readRDS(url("https://github.com/zhou-lab/CytoMethIC_models/raw/refs/heads/main/models/Age_HM450_20240504.rds"))
+cmi_predict(betasHM450, model)
+```
+
+# RACE
 
 The below snippet shows a demonstration of the cmi_predict function working to
 predict the ethnicity of the patient.
 
 ```{r cyto6, message=FALSE}
-cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8421"]])
+model = ExperimentHub()[["EH8421"]]
+cmi_predict(betasHM450, model)
 ```
-# Pan-Cancer COO classification
-
-The below snippet shows a demonstration of the cmi_predict function working to
-predict the cell of origin of the cancer.
-
-```{r cyto7, message=FALSE}
-cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8423"]])
-```
-
-# Ethnicity From GitHub Link
 
 In addition to ExperimentHub Models, this package also supports using models
 from GitHub URLs. Note that https://github.com/zhou-lab/CytoMethIC_models will
 be the most frequently updated public repository of our lab's classifiers.
 
-```{r cyto8}
-base_url = "https://github.com/zhou-lab/CytoMethIC_models/raw/main/models"
-cmi_model = readRDS(url(sprintf("%s/Race3_rfcTCGA_InfHum3.rds", base_url)))
-betas = openSesame(sesameDataGet("EPICv2.8.SigDF")[[1]], mask=FALSE)
-betas = mLiftOver(betas, "HM450")
-cmi_predict(betas, cmi_model)
+```{r cyto7}
+model = readRDS(url("https://github.com/zhou-lab/CytoMethIC_models/raw/refs/heads/main/models/Race5_rfcTCGA_InfHum3.rds"))
+cmi_predict(betasHM450, model)
 ```
 
 ```{r}

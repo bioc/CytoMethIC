@@ -1,10 +1,18 @@
 Package: CytoMethIC
 Type: Package
-Title: DNA methylation-based classification and regression
-Description: This package provides DNA methylation-based prediction of cancer type, molecular signature and clinical
- outcomes. It provides convenience functions for missing value imputation, probe ID conversion, model interpretation
- and visualization. The package links to our models on ExperimentHub. The package
- currently supports HM450, EPIC and EPICv2.
+Title: DNA methylation-based machine learning models
+Description: This package provides model data and functions for easily using
+             machine learning models that use data from the DNA methylome to classify cancer
+             type and phenotype from a sample. The primary motivation for the development of
+             this package is to abstract away the granular and accessibility-limiting code
+             required to utilize machine learning models in R. Our package provides this
+             abstraction for RandomForest, e1071 Support Vector, Extreme Gradient Boosting,
+             and Tensorflow models. This is paired with an ExperimentHub component, which
+             contains models developed for epigenetic cancer classification and predicting
+             phenotypes. This includes CNS tumor classification, Pan-cancer classification,
+             race prediction, cell of origin classification, and subtype classification
+             models. The package links to our models on ExperimentHub. The package currently
+             supports HM450, EPIC, EPICv2, MSA, and MM285.
 Version: 1.3.1
 Authors@R: c(person("Wanding", "Zhou", role = c("aut"),
              email = "zhouwanding@gmail.com", comment = c(ORCID = "0000-0001-9126-1932")),

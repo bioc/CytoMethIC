@@ -1,10 +1,11 @@
 name: "CytoMethIC"
 navbar:
-  title: 'CytoMethIC'
+  title: '<a href="http://bioconductor.org/packages/release/bioc/html/CytoMethIC.html" class="navbar-left"><img src="./figures/logo.png" height="30" width="150" vspace=10 hspace=15></a>'
   left:
-    - text: "Quick Start"
+    - text: "Basic Information"
       icon: fa-home
-      href: quickstart.html
-    - text: "User Guide"
-      icon: fa-book
-      href: manual.html
+      href: CytoMethIC.html
+    - text: "Oncology"
+      icon: fa-briefcase-medical
+      href: Oncology.html
+

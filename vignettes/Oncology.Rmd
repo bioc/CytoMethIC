@@ -1,0 +1,75 @@
+---
+title: "2. CytoMethIC Oncology"
+shorttitle: "2. CytoMethIC Oncology"
+date: "`r BiocStyle::doc_date()`"
+package: CytoMethIC
+output: BiocStyle::html_document
+fig_width: 6
+fig_height: 5
+vignette: >
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteIndexEntry{2. CytoMethIC Oncology}
+    %\VignetteEncoding{UTF-8}
+    
+---
+
+`CytoMethIC-Oncology` is a collection machine learning models for
+oncology. This includes CNS tumor classification, pan-cancer classification,
+cell of origin classification, and subtype classification models.
+
+# MODELS
+
+Models available are listed below:
+
+```{r cyto-model, result="asis", echo=FALSE, message=FALSE}
+library(knitr)
+library(CytoMethIC)
+kable(cmi_models[
+    cmi_models$PredictionGroup == "2. Oncology",
+    c("EHID", "ModelID", "PredictionLabel")],
+    caption = "CytoMethIC Oncology Models"
+)
+```
+
+One can access the model using the EHID above in
+`ExperimentHub()[["EHID"]]`.
+
+More models (if EHID is NA) are available in the following [Github
+Repo](https://github.com/zhou-lab/CytoMethIC_models/tree/main/models).  You can
+directly download them and load with `readRDS()`. Some examples using either
+approach are below.
+
+# CANCER TYPE
+
+The below snippet shows a demonstration of the model abstraction working on
+random forest and support vector models from CytoMethIC models on
+ExperimentHub.
+
+```{r cyto4, message=FALSE}
+## for missing data
+library(sesame)
+library(CytoMethIC)
+betas = imputeBetas(sesameDataGet("HM450.1.TCGA.PAAD")$betas)
+cmi_predict(betas, ExperimentHub()[["EH8395"]])
+cmi_predict(betas, ExperimentHub()[["EH8396"]])
+```
+
+
+Cancer subtype following TCGA prediction labels:
+
+```{r cyto5, message=FALSE}
+cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8422"]])
+```
+
+# CELL-OF-ORIGIN
+
+The below snippet shows a demonstration of the cmi_predict function working to
+predict the cell of origin of the cancer.
+
+```{r cyto7, message=FALSE}
+cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8423"]])
+```
+
+```{r}
+sessionInfo()
+```
