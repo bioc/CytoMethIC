@@ -84,18 +84,34 @@ The below snippet shows a demonstration of the cmi_predict function working to
 predict the ethnicity of the patient.
 
 ```{r cyto6, message=FALSE}
-model = ExperimentHub()[["EH8421"]]
+model = ExperimentHub()[["EH8421"]] # the same as "https://github.com/zhou-lab/CytoMethIC_models/raw/refs/heads/main/models/Race5_rfcTCGA_InfHum3.rds"
 cmi_predict(betasHM450, model)
 ```
 
-In addition to ExperimentHub Models, this package also supports using models
-from GitHub URLs. Note that https://github.com/zhou-lab/CytoMethIC_models will
-be the most frequently updated public repository of our lab's classifiers.
+# CELL FRACTIONS
 
-```{r cyto7}
-model = readRDS(url("https://github.com/zhou-lab/CytoMethIC_models/raw/refs/heads/main/models/Race5_rfcTCGA_InfHum3.rds"))
+```{r cyto-basic8}
+## leukocyte fractions
+model = readRDS(url("https://github.com/zhou-lab/CytoMethIC_models/raw/refs/heads/main/models/LeukoFrac_HM450_20240614.rds"))
 cmi_predict(betasHM450, model)
 ```
+
+Cell-type deconvolution using Loyfer et al. conferences:
+
+```{r cyto-basic9, fig.width=4, fig.height=4, eval=FALSE}
+model = readRDS(url("https://github.com/zhou-lab/CytoMethIC_models/raw/refs/heads/main/models/TissueComp_HM450_20240827.rds"))
+cell_comps = cmi_predict(betasHM450, model)
+cell_comps = enframe(cell_comps$frac, name="cell_type", value="frac")
+cell_comps = cell_comps |> filter(frac>0)
+
+ggplot(cell_comps, aes(x="", y=frac, fill=cell_type)) +
+    geom_bar(stat="identity", width=1) +
+    coord_polar(theta="y") +
+    theme_void() + labs(fill = "Cell Type") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+<img src="figures/cyto-basic9.png" alt="deconvolution" width="450"/>
 
 ```{r}
 sessionInfo()

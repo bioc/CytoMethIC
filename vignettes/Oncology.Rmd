@@ -50,15 +50,14 @@ ExperimentHub.
 library(sesame)
 library(CytoMethIC)
 betas = imputeBetas(sesameDataGet("HM450.1.TCGA.PAAD")$betas)
-cmi_predict(betas, ExperimentHub()[["EH8395"]])
-cmi_predict(betas, ExperimentHub()[["EH8396"]])
-```
+model = ExperimentHub()[["EH8395"]] # Random forest model
+cmi_predict(betas, model)
 
+model = ExperimentHub()[["EH8396"]] # SVM model
+cmi_predict(betas, model)
 
-Cancer subtype following TCGA prediction labels:
-
-```{r cyto5, message=FALSE}
-cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8422"]])
+model = ExperimentHub()[["EH8422"]] # Cancer subtype
+cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, model)
 ```
 
 # CELL-OF-ORIGIN
@@ -67,7 +66,8 @@ The below snippet shows a demonstration of the cmi_predict function working to
 predict the cell of origin of the cancer.
 
 ```{r cyto7, message=FALSE}
-cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, ExperimentHub()[["EH8423"]])
+model = ExperimentHub()[["EH8423"]]
+cmi_predict(sesameDataGet("HM450.1.TCGA.PAAD")$betas, model)
 ```
 
 ```{r}
